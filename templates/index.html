@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P&P Smart Maintenance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: linear-gradient(180deg, #0f172a 0%, #1e293b 70%); }
+    .glass { background: rgba(15, 23, 42, 0.80); backdrop-filter: blur(18px); }
+    .card-border { border: 1px solid rgba(148, 163, 184, 0.18); }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100">
+  <div class="mx-auto max-w-screen-2xl px-4 py-6">
+    <header class="mb-6 rounded-3xl border border-slate-700/60 bg-slate-900/80 p-5 shadow-2xl shadow-slate-950/40 glass">
+      <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 class="text-3xl font-semibold text-cyan-300">P&P Smart Maintenance</h1>
+          <p class="mt-2 max-w-2xl text-slate-400">ระบบจัดการการซ่อมบำรุงและอุปกรณ์ พร้อมแดชบอร์ดสรุปและฟอร์มงานแบบมืออาชีพ</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <a href="/" class="rounded-full bg-slate-700/80 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-cyan-500/90">Home</a>
+          {% for key, label in nav_items %}
+          <a href="{{ url_for('manage_list', entity=key) }}" class="rounded-full bg-slate-700/80 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-sky-500/90">{{ label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="mb-6 space-y-3">
+      {% for category, message in messages %}
+      <div class="rounded-2xl border px-4 py-3 text-sm shadow-lg shadow-slate-950/20 {% if category == 'warning' %}border-amber-500/50 bg-amber-500/10 text-amber-100{% else %}border-cyan-500/30 bg-cyan-500/10 text-cyan-100{% endif %}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% if page == 'dashboard' %}
+    <section class="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      <div class="space-y-6 rounded-3xl border border-slate-700/60 bg-slate-900/80 p-6 glass shadow-xl shadow-slate-950/40">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-sm uppercase tracking-[0.2em] text-cyan-300">Repair Queue</p>
+            <h2 class="mt-2 text-4xl font-semibold text-white">{{ pending_count }}</h2>
+            <p class="mt-2 text-slate-400">ใบแจ้งซ่อมที่ค้างอยู่ในระบบ</p>
+          </div>
+          <div class="rounded-3xl bg-sky-500/10 p-4 text-sky-300 shadow-inner shadow-slate-950/10">
+            <span class="text-3xl">🚧</span>
+          </div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="rounded-3xl border border-slate-700/70 bg-slate-950/40 p-4">
+            <p class="text-sm text-slate-400">Buildings</p>
+            <p class="mt-2 text-3xl font-semibold text-cyan-300">{{ totals.buildings }}</p>
+          </div>
+          <div class="rounded-3xl border border-slate-700/70 bg-slate-950/40 p-4">
+            <p class="text-sm text-slate-400">Equipment</p>
+            <p class="mt-2 text-3xl font-semibold text-sky-300">{{ totals.equipment }}</p>
+          </div>
+          <div class="rounded-3xl border border-slate-700/70 bg-slate-950/40 p-4">
+            <p class="text-sm text-slate-400">Technicians</p>
+            <p class="mt-2 text-3xl font-semibold text-cyan-300">{{ totals.technicians }}</p>
+          </div>
+          <div class="rounded-3xl border border-slate-700/70 bg-slate-950/40 p-4">
+            <p class="text-sm text-slate-400">Total Requests</p>
+            <p class="mt-2 text-3xl font-semibold text-sky-300">{{ totals.requests }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="rounded-3xl border border-slate-700/60 bg-slate-900/80 p-6 glass shadow-xl shadow-slate-950/40">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-sm uppercase tracking-[0.2em] text-cyan-300">Latest Requests</p>
+            <h2 class="mt-2 text-2xl font-semibold text-white">รายการแจ้งซ่อมล่าสุด</h2>
+          </div>
+          <span class="rounded-3xl bg-sky-500/10 px-3 py-2 text-sm text-sky-200">Updated live</span>
+        </div>
+        <div class="mt-6 space-y-4">
+          {% if latest_requests %}
+            {% for item in latest_requests %}
+            <div class="rounded-3xl border border-slate-700/60 bg-slate-950/60 p-4">
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p class="text-sm text-slate-400">Request ID #{{ item.request_id }}</p>
+                  <p class="text-lg font-semibold text-white">{{ item.equipment }}</p>
+                </div>
+                <div class="space-y-1 text-right">
+                  <p class="text-sm text-slate-400">Technician: {{ item.technician }}</p>
+                  <p class="text-sm text-slate-400">Status: <span class="font-semibold text-cyan-300">{{ item.status or 'Pending' }}</span></p>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-slate-400">ไม่มีรายการแจ้งซ่อมล่าสุด</p>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+    {% elif page == 'list' %}
+    <section class="space-y-6">
+      <div class="flex flex-col gap-4 rounded-3xl border border-slate-700/60 bg-slate-900/80 p-6 glass shadow-xl shadow-slate-950/40 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm uppercase tracking-[0.2em] text-cyan-300">Manage</p>
+          <h2 class="mt-2 text-3xl font-semibold text-white">{{ config.label }}</h2>
+          <p class="mt-1 text-slate-400">จัดการข้อมูลตาราง {{ config.label }} ทั้งหมด</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <a href="{{ url_for('manage_create', entity=entity) }}" class="rounded-full bg-sky-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-cyan-400">+ Add New</a>
+          <a href="/" class="rounded-full border border-slate-700 px-5 py-2 text-sm text-slate-200 transition hover:border-cyan-400">Back to Home</a>
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-3xl border border-slate-700/60 bg-slate-900/80 shadow-2xl shadow-slate-950/30">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-700 text-left text-sm text-slate-200">
+            <thead class="bg-slate-950/80 text-slate-300">
+              <tr>
+                {% for header in config.headers %}
+                <th class="px-4 py-4 font-medium uppercase tracking-[0.12em]">{{ header }}</th>
+                {% endfor %}
+                <th class="px-4 py-4 font-medium uppercase tracking-[0.12em]">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 bg-slate-900/60">
+              {% for row in rows %}
+              <tr class="transition hover:bg-slate-800/70">
+                {% for key in row.keys() %}
+                <td class="px-4 py-4">{{ row[key] }}</td>
+                {% endfor %}
+                <td class="px-4 py-4 space-x-2">
+                  <a href="{{ url_for('manage_edit', entity=entity, pk=row[config.pk]) }}" class="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/20">Edit</a>
+                  <a href="{{ url_for('manage_delete', entity=entity, pk=row[config.pk]) }}" class="rounded-full bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300 hover:bg-rose-500/20">Delete</a>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td class="px-4 py-6 text-slate-400" colspan="{{ config.headers|length + 1 }}">No data available yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    {% elif page == 'form' %}
+    <section class="space-y-6">
+      <div class="rounded-3xl border border-slate-700/60 bg-slate-900/80 p-6 glass shadow-xl shadow-slate-950/40">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-sm uppercase tracking-[0.2em] text-cyan-300">{{ 'Edit' if row[config.pk] else 'Create' }} {{ config.label }}</p>
+            <h2 class="mt-2 text-3xl font-semibold text-white">{{ config.label }} Form</h2>
+          </div>
+          <a href="/" class="rounded-full border border-slate-700 px-5 py-2 text-sm text-slate-200 transition hover:border-cyan-400">Back to Home</a>
+        </div>
+      </div>
+
+      <form action="" method="post" class="space-y-6 rounded-3xl border border-slate-700/60 bg-slate-900/80 p-6 glass shadow-xl shadow-slate-950/40">
+        <div class="grid gap-6 md:grid-cols-2">
+          {% if entity == 'building' %}
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Building Name</span>
+              <input name="name" type="text" value="{{ row.name }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" required />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Floors</span>
+              <input name="floors" type="number" min="1" value="{{ row.floors }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" required />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Manager Name</span>
+              <input name="manager_name" type="text" value="{{ row.manager_name }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Manager Phone</span>
+              <input name="manager_phone" type="text" value="{{ row.manager_phone }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+          {% elif entity == 'room' %}
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm text-slate-300">Building</span>
+              <select name="building_id" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" required>
+                <option value="">Select Building</option>
+                {% for building in select_options.buildings %}
+                <option value="{{ building.building_id }}" {% if building.building_id == row.building_id %}selected{% endif %}>{{ building.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Room Type</span>
+              <input name="room_type" type="text" value="{{ row.room_type }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Capacity</span>
+              <input name="capacity" type="number" min="1" value="{{ row.capacity }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+          {% elif entity == 'equipment' %}
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm text-slate-300">Room</span>
+              <select name="room_id" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" required>
+                <option value="">Select Room</option>
+                {% for room in select_options.rooms %}
+                <option value="{{ room.room_id }}" {% if room.room_id == row.room_id %}selected{% endif %}>{{ room.room_type }} (ID: {{ room.room_id }})</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Equipment Name</span>
+              <input name="name" type="text" value="{{ row.name }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" required />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Serial Number</span>
+              <input name="serial_number" type="text" value="{{ row.serial_number }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Category</span>
+              <input name="category" type="text" value="{{ row.category }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Purchase Date</span>
+              <input name="purchase_date" type="date" value="{{ row.purchase_date }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Status</span>
+              <select name="status" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none">
+                <option value="">Select Status</option>
+                {% for option in equipment_status_options %}
+                <option value="{{ option }}" {% if option == row.status %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          {% elif entity == 'technician' %}
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">First Name</span>
+              <input name="first_name" type="text" value="{{ row.first_name }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" required />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Last Name</span>
+              <input name="last_name" type="text" value="{{ row.last_name }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" required />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Phone</span>
+              <input name="phone" type="text" value="{{ row.phone }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Email</span>
+              <input name="email" type="email" value="{{ row.email }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm text-slate-300">Specialty</span>
+              <input name="specialty" type="text" value="{{ row.specialty }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+          {% elif entity == 'request' %}
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm text-slate-300">Equipment</span>
+              <select id="equipment-select" name="equipment_id" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" required>
+                <option value="">Select Equipment</option>
+                {% for equipment in select_options.equipments %}
+                <option value="{{ equipment.equipment_id }}" {% if equipment.equipment_id == row.equipment_id %}selected{% endif %}>{{ equipment.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Technician</span>
+              <select name="technician_id" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none">
+                <option value="">Unassigned</option>
+                {% for technician in select_options.technicians %}
+                <option value="{{ technician.technician_id }}" {% if technician.technician_id == row.technician_id %}selected{% endif %}>{{ technician.first_name }} {{ technician.last_name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <input id="room-id" name="room_id" type="hidden" value="{{ row.room_id }}" />
+            <input id="building-id" name="building_id" type="hidden" value="{{ row.building_id }}" />
+            <div class="grid gap-6 md:grid-cols-2">
+              <div class="block space-y-2">
+                <span class="text-sm text-slate-300">Assigned Building</span>
+                <input id="building-label" type="text" value="" readonly class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-400" />
+              </div>
+              <div class="block space-y-2">
+                <span class="text-sm text-slate-300">Assigned Room</span>
+                <input id="room-label" type="text" value="" readonly class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-400" />
+              </div>
+            </div>
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm text-slate-300">Request Date</span>
+              <input name="request_date" type="date" value="{{ row.request_date or '' }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm text-slate-300">Reported By</span>
+              <input name="reported_by" type="text" value="{{ row.reported_by }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm text-slate-300">Problem Description</span>
+              <textarea name="problem_description" rows="4" class="w-full rounded-3xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none">{{ row.problem_description }}</textarea>
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Priority</span>
+              <select name="priority" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none">
+                <option value="">Choose priority</option>
+                {% for option in priority_options %}
+                <option value="{{ option }}" {% if option == row.priority %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="block space-y-2">
+              <span class="text-sm text-slate-300">Status</span>
+              <select name="status" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none">
+                <option value="">Choose status</option>
+                {% for option in status_options %}
+                <option value="{{ option }}" {% if option == row.status %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm text-slate-300">Resolution</span>
+              <textarea name="resolution" rows="3" class="w-full rounded-3xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none">{{ row.resolution }}</textarea>
+            </label>
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm text-slate-300">Completion Date</span>
+              <input name="completion_date" type="date" value="{{ row.completion_date or '' }}" class="w-full rounded-2xl border border-slate-700/70 bg-slate-950/80 px-4 py-3 text-slate-100 focus:border-sky-400 focus:outline-none" />
+            </label>
+          {% endif %}
+        </div>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <a href="{{ url_for('manage_list', entity=entity) }}" class="rounded-full border border-slate-700 px-5 py-3 text-sm text-slate-200 transition hover:border-cyan-400">Back to {{ config.label }}</a>
+          <button type="submit" class="inline-flex items-center justify-center rounded-full bg-cyan-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-400">Save {{ config.label }}</button>
+        </div>
+      </form>
+    </section>
+    {% endif %}
+  </div>
+
+  {% if page == 'form' and entity == 'request' %}
+  <script>
+    const equipmentInfo = {
+      {% for equipment in select_options.equipments %}
+      '{{ equipment.equipment_id }}': {
+        room_id: '{{ equipment.room_id }}',
+        label: '{{ equipment.name }}'
+      },
+      {% endfor %}
+    };
+    const rooms = {
+      {% for room in select_options.rooms %}
+      '{{ room.room_id }}': { label: '{{ room.room_type }}', building_id: '{{ room.building_id }}' },
+      {% endfor %}
+    };
+    const buildings = {
+      {% for building in select_options.buildings %}
+      '{{ building.building_id }}': '{{ building.name }}',
+      {% endfor %}
+    };
+
+    function updateRequestLocation() {
+      const equipmentId = document.getElementById('equipment-select').value;
+      const roomInput = document.getElementById('room-id');
+      const buildingInput = document.getElementById('building-id');
+      const roomLabel = document.getElementById('room-label');
+      const buildingLabel = document.getElementById('building-label');
+
+      if (!equipmentId || !equipmentInfo[equipmentId]) {
+        roomInput.value = '';
+        buildingInput.value = '';
+        roomLabel.value = '';
+        buildingLabel.value = '';
+        return;
+      }
+      const roomId = equipmentInfo[equipmentId].room_id;
+      roomInput.value = roomId || '';
+      const room = rooms[roomId];
+      roomLabel.value = room ? room.label : 'Unknown room';
+      const buildingName = room && buildings[room.building_id] ? buildings[room.building_id] : 'Unknown building';
+      buildingInput.value = room ? room.building_id : '';
+      buildingLabel.value = buildingName;
+    }
+
+    document.getElementById('equipment-select').addEventListener('change', updateRequestLocation);
+    window.addEventListener('DOMContentLoaded', updateRequestLocation);
+  </script>
+  {% endif %}
+</body>
+</html>
