@@ -109,7 +109,9 @@
           <p class="mt-1 text-slate-400">จัดการข้อมูลตาราง {{ config.label }} ทั้งหมด</p>
         </div>
         <div class="flex flex-wrap gap-3">
+          {% if entity == 'request' %}
           <a href="{{ url_for('manage_create', entity=entity) }}" class="rounded-full bg-sky-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-cyan-400">+ Add New</a>
+          {% endif %}
           <a href="/" class="rounded-full border border-slate-700 px-5 py-2 text-sm text-slate-200 transition hover:border-cyan-400">Back to Home</a>
         </div>
       </div>
@@ -122,7 +124,9 @@
                 {% for header in config.headers %}
                 <th class="px-4 py-4 font-medium uppercase tracking-[0.12em]">{{ header }}</th>
                 {% endfor %}
+                {% if entity == 'request' %}
                 <th class="px-4 py-4 font-medium uppercase tracking-[0.12em]">Actions</th>
+                {% endif %}
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800 bg-slate-900/60">
@@ -131,14 +135,16 @@
                 {% for key in row.keys() %}
                 <td class="px-4 py-4">{{ row[key] }}</td>
                 {% endfor %}
+                {% if entity == 'request' %}
                 <td class="px-4 py-4 space-x-2">
                   <a href="{{ url_for('manage_edit', entity=entity, pk=row[config.pk]) }}" class="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/20">Edit</a>
                   <a href="{{ url_for('manage_delete', entity=entity, pk=row[config.pk]) }}" class="rounded-full bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300 hover:bg-rose-500/20">Delete</a>
                 </td>
+                {% endif %}
               </tr>
               {% else %}
               <tr>
-                <td class="px-4 py-6 text-slate-400" colspan="{{ config.headers|length + 1 }}">No data available yet.</td>
+                <td class="px-4 py-6 text-slate-400" colspan="{{ config.headers|length + (1 if entity == 'request' else 0) }}">No data available yet.</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -324,7 +330,9 @@
         </div>
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <a href="{{ url_for('manage_list', entity=entity) }}" class="rounded-full border border-slate-700 px-5 py-3 text-sm text-slate-200 transition hover:border-cyan-400">Back to {{ config.label }}</a>
+          {% if entity == 'request' %}
           <button type="submit" class="inline-flex items-center justify-center rounded-full bg-cyan-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-400">Save {{ config.label }}</button>
+          {% endif %}
         </div>
       </form>
     </section>

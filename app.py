@@ -221,12 +221,13 @@ def manage_list(entity):
 
 @app.route('/manage/<entity>/create', methods=['GET', 'POST'])
 def manage_create(entity):
+    if entity != 'request':
+        abort(404)
     config = validate_entity(entity)
     select_options = get_select_options()
     if request.method == 'POST':
         form_data = {field: request.form.get(field) or None for field in config['fields']}
-        if entity == 'request':
-            form_data['request_date'] = form_data['request_date'] or date.today().isoformat()
+        form_data['request_date'] = form_data['request_date'] or date.today().isoformat()
         save_entity(entity, form_data)
         flash(f'{config["label"]} created successfully.', 'success')
         return redirect(url_for('manage_list', entity=entity))
@@ -254,13 +255,14 @@ def manage_create(entity):
 
 @app.route('/manage/<entity>/<int:pk>/edit', methods=['GET', 'POST'])
 def manage_edit(entity, pk):
+    if entity != 'request':
+        abort(404)
     config = validate_entity(entity)
     row = get_row(entity, pk)
     select_options = get_select_options()
     if request.method == 'POST':
         form_data = {field: request.form.get(field) or None for field in config['fields']}
-        if entity == 'request':
-            form_data['request_date'] = form_data['request_date'] or date.today().isoformat()
+        form_data['request_date'] = form_data['request_date'] or date.today().isoformat()
         save_entity(entity, form_data, pk_value=pk)
         flash(f'{config["label"]} updated successfully.', 'success')
         return redirect(url_for('manage_list', entity=entity))
@@ -286,6 +288,8 @@ def manage_edit(entity, pk):
 
 @app.route('/manage/<entity>/<int:pk>/delete')
 def manage_delete(entity, pk):
+    if entity != 'request':
+        abort(404)
     config = validate_entity(entity)
     delete_entity(entity, pk)
     flash(f'{config["label"]} deleted successfully.', 'warning')
